@@ -4,6 +4,7 @@ from enum import Enum
 import aiohttp
 import anyio
 import pymorphy2
+from async_timeout import timeout
 
 from adapters import SANITIZERS, ArticleNotFound
 from text_tools import split_by_words, calculate_jaundice_rate
@@ -17,6 +18,7 @@ class ProcessingStatus(Enum):
     OK = 'OK'
     FETCH_ERROR = 'FETCH_ERROR'
     PARSING_ERROR = 'PARSING_ERROR'
+    TIMEOUT = 'TIMEOUT'
 
 
 def fetch_charged_words(path, morph):
@@ -35,22 +37,29 @@ async def fetch(session, url):
 
 
 async def process_article(session, morph, charged_words, url, results):
-    html = await fetch(session, url)
-
-    if not html:
-        results.append((url, None, None, ProcessingStatus.FETCH_ERROR.value))
-        return
     try:
-        text = sanitize(html, plaintext=True)
-        splited_text = split_by_words(morph, text)
-        jaundice_rate = calculate_jaundice_rate(splited_text, charged_words)
+        async with timeout(5):
+            html = await fetch(session, url)
 
-        results.append((
-            url, jaundice_rate,
-            len(splited_text), ProcessingStatus.OK.value
-        ))
-    except ArticleNotFound:
-        results.append((url, None, None, ProcessingStatus.PARSING_ERROR.value))
+            if not html:
+                results.append(
+                    (url, None, None, ProcessingStatus.FETCH_ERROR.value))
+                return
+            try:
+                text = sanitize(html, plaintext=True)
+                splited_text = split_by_words(morph, text)
+                jaundice_rate = calculate_jaundice_rate(
+                    splited_text, charged_words)
+
+                results.append((
+                    url, jaundice_rate,
+                    len(splited_text), ProcessingStatus.OK.value
+                ))
+            except ArticleNotFound:
+                results.append(
+                    (url, None, None, ProcessingStatus.PARSING_ERROR.value))
+    except asyncio.TimeoutError:
+        results.append((url, None, None, ProcessingStatus.TIMEOUT.value))
 
 
 async def main():
