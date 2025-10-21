@@ -1,4 +1,5 @@
 import asyncio
+from time import monotonic
 from enum import Enum
 
 import aiohttp
@@ -37,13 +38,15 @@ async def fetch(session, url):
 
 
 async def process_article(session, morph, charged_words, url, results):
+    start = monotonic()
+    result = []
     try:
         async with timeout(5):
             html = await fetch(session, url)
 
             if not html:
-                results.append(
-                    (url, None, None, ProcessingStatus.FETCH_ERROR.value))
+                result.extend(
+                    [url, None, None, ProcessingStatus.FETCH_ERROR.value])
                 return
             try:
                 text = sanitize(html, plaintext=True)
@@ -51,15 +54,19 @@ async def process_article(session, morph, charged_words, url, results):
                 jaundice_rate = calculate_jaundice_rate(
                     splited_text, charged_words)
 
-                results.append((
+                result.extend([
                     url, jaundice_rate,
                     len(splited_text), ProcessingStatus.OK.value
-                ))
+                ])
             except ArticleNotFound:
-                results.append(
-                    (url, None, None, ProcessingStatus.PARSING_ERROR.value))
+                result.extend(
+                    [url, None, None, ProcessingStatus.PARSING_ERROR.value])
     except asyncio.TimeoutError:
-        results.append((url, None, None, ProcessingStatus.TIMEOUT.value))
+        result.extend([url, None, None, ProcessingStatus.TIMEOUT.value])
+    finally:
+        end = monotonic()
+        result.append(end-start)
+        results.append(result)
 
 
 async def main():
@@ -77,9 +84,10 @@ async def main():
                     url, results
                 )
 
-        for url, rate, count, status in results:
-            print(f'URL: {url}\nСтатус: {status}\n' \
-                  f'Рейтинг: {rate}\nКол-во слов: {count}\n')
+        for url, rate, count, status, time in results:
+            print(f'\nURL: {url}\nСтатус: {status}\n' \
+                  f'Рейтинг: {rate}\nКол-во слов: {count}\n' \
+                  f'Анализ закончен за {time:.2f} сек.')
 
 
 if __name__ == "__main__":
