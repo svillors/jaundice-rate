@@ -1,6 +1,7 @@
 import asyncio
 from time import monotonic
 from enum import Enum
+from functools import partial
 
 import aiohttp
 import anyio
@@ -84,7 +85,7 @@ async def process_article(session, morph, charged_words, url, results=None):
     finally:
         end = monotonic()
         result.append(end-start)
-        if not results:
+        if results is None:
             return result
         results.append(result)
 
@@ -98,11 +99,11 @@ async def analyze_urls(urls):
 
         async with anyio.create_task_group() as tk:
             for url in urls:
-                tk.start_soon(
+                tk.start_soon(partial(
                     process_article, session,
                     morph, charged_words,
                     url, results=results
-                )
+                ))
 
         return results
 
