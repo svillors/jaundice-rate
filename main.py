@@ -24,7 +24,7 @@ class ProcessingStatus(Enum):
 
 def fetch_charged_words(path, morph):
     with open(path) as f:
-        splited_text = split_by_words(morph, f.read())
+        splited_text = f.read().split()
         return splited_text
 
 
@@ -50,7 +50,7 @@ async def process_article(session, morph, charged_words, url, results):
                 return
             try:
                 text = sanitize(html, plaintext=True)
-                splited_text = split_by_words(morph, text)
+                splited_text = await split_by_words(morph, text)
                 jaundice_rate = calculate_jaundice_rate(
                     splited_text, charged_words)
 
