@@ -33,6 +33,19 @@ def fetch_charged_words(path, morph):
         return splited_text
 
 
+def test_process_article():
+    morph = pymorphy2.MorphAnalyzer()
+
+    async def run_proc_article(url):
+        async with aiohttp.ClientSession() as session:
+            result = await process_article(session, morph, 'заглушка', url)
+            return result[3]
+
+    assert asyncio.run(run_proc_article('https://inosmi.ru/20251013/gaza-275134570.html')) == 'OK'
+    assert asyncio.run(run_proc_article('https://inosmiqweqwe.ru/20251020/sholts-275262095.html')) == 'FETCH_ERROR'
+    assert asyncio.run(run_proc_article('https://lenta.ru/brief/2021/08/26/afg_terror/')) == 'PARSING_ERROR'
+
+
 async def fetch(session, url):
     try:
         async with session.get(url) as response:
@@ -42,7 +55,7 @@ async def fetch(session, url):
         return
 
 
-async def process_article(session, morph, charged_words, url, results):
+async def process_article(session, morph, charged_words, url, results=None):
     start = monotonic()
     result = []
     try:
@@ -71,6 +84,8 @@ async def process_article(session, morph, charged_words, url, results):
     finally:
         end = monotonic()
         result.append(end-start)
+        if not results:
+            return result
         results.append(result)
 
 
@@ -86,7 +101,7 @@ async def analyze_urls(urls):
                 tk.start_soon(
                     process_article, session,
                     morph, charged_words,
-                    url, results
+                    url, results=results
                 )
 
         return results
