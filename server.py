@@ -5,6 +5,13 @@ from main import analyze_urls
 
 async def handle(request):
     urls = request.query.get('urls').split(',')
+
+    if len(urls) >= 10:
+        return web.json_response(
+            {"error": "too many urls in request, should be 10 or less"},
+            status=400
+        )
+
     analuzed_results = await analyze_urls(urls)
     response = []
 
