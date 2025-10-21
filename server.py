@@ -1,10 +1,12 @@
 from aiohttp import web
 
+from main import analyze_urls
+
 
 async def handle(request):
     urls = request.query.get('urls').split(',')
-    response = {'urls': urls}
-    return web.json_response(response)
+    analuzed_results = await analyze_urls(urls)
+    return web.json_response(analuzed_results)
 
 
 app = web.Application()

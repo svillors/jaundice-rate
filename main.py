@@ -11,7 +11,12 @@ from adapters import SANITIZERS, ArticleNotFound
 from text_tools import split_by_words, calculate_jaundice_rate
 
 
-TEST_ARTICLES = ['https://inosmi.ru/202123123йцуйцуйцуйцу51013/tomahawk-275135914.html', 'https://inosmi.ru/20251013/gaza-275134570.html', 'https://inosmi.ru/20251020/sholts-275262095.html', 'https://lenta.ru/brief/2021/08/26/afg_terror/']
+TEST_ARTICLES = [
+    'https://inosmi.ru/202123123йцуйцуйцуйцу51013/tomahawk-275135914.html',
+    'https://inosmi.ru/20251013/gaza-275134570.html',
+    'https://inosmi.ru/20251020/sholts-275262095.html',
+    'https://lenta.ru/brief/2021/08/26/afg_terror/'
+]
 sanitize = SANITIZERS.get('inosmi_ru')
 
 
@@ -69,7 +74,7 @@ async def process_article(session, morph, charged_words, url, results):
         results.append(result)
 
 
-async def main():
+async def analyze_urls(urls):
     async with aiohttp.ClientSession() as session:
         morph = pymorphy2.MorphAnalyzer()
         charged_words = fetch_charged_words(
@@ -77,18 +82,20 @@ async def main():
         results = []
 
         async with anyio.create_task_group() as tk:
-            for url in TEST_ARTICLES:
+            for url in urls:
                 tk.start_soon(
                     process_article, session,
                     morph, charged_words,
                     url, results
                 )
 
-        for url, rate, count, status, time in results:
-            print(f'\nURL: {url}\nСтатус: {status}\n' \
-                  f'Рейтинг: {rate}\nКол-во слов: {count}\n' \
-                  f'Анализ закончен за {time:.2f} сек.')
+        return results
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    results = asyncio.run(analyze_urls(TEST_ARTICLES))
+
+    for url, rate, count, status, time in results:
+        print(f'\nURL: {url}\nСтатус: {status}\n' \
+              f'Рейтинг: {rate}\nКол-во слов: {count}\n' \
+              f'Анализ закончен за {time:.2f} сек.')
