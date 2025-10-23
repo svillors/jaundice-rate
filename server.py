@@ -1,9 +1,11 @@
+import pymorphy2
 from aiohttp import web
 
 from main import analyze_urls
 
 
 async def handle(request):
+    morph = request.app.get('morph')
     urls = request.query.get('urls').split(',')
 
     if len(urls) >= 10:
@@ -12,7 +14,7 @@ async def handle(request):
             status=400
         )
 
-    analuzed_results = await analyze_urls(urls)
+    analuzed_results = await analyze_urls(urls, morph)
     response = []
 
     for url, rate, count, status, time in analuzed_results:
@@ -27,9 +29,8 @@ async def handle(request):
     return web.json_response(response)
 
 
-app = web.Application()
-app.add_routes([web.get('/', handle)])
-
-
 if __name__ == '__main__':
+    app = web.Application()
+    app['morph'] = pymorphy2.MorphAnalyzer()
+    app.add_routes([web.get('/', handle)])
     web.run_app(app)

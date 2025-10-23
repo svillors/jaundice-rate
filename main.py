@@ -90,9 +90,8 @@ async def process_article(session, morph, charged_words, url, results=None):
         results.append(result)
 
 
-async def analyze_urls(urls):
+async def analyze_urls(urls, morph):
     async with aiohttp.ClientSession() as session:
-        morph = pymorphy2.MorphAnalyzer()
         charged_words = fetch_charged_words(
             './charged_dict/negative_words.txt', morph)
         results = []
@@ -109,7 +108,8 @@ async def analyze_urls(urls):
 
 
 if __name__ == "__main__":
-    results = asyncio.run(analyze_urls(TEST_ARTICLES))
+    morph = pymorphy2.MorphAnalyzer()
+    results = asyncio.run(analyze_urls(TEST_ARTICLES, morph))
 
     for url, rate, count, status, time in results:
         print(f'\nURL: {url}\nСтатус: {status}\n' \
