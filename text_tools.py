@@ -17,6 +17,7 @@ async def split_by_words(morph, text):
         async with timeout(3):
             words = []
             for word in text.split():
+                await asyncio.sleep(0)
                 cleaned_word = _clean_word(word)
                 normalized_word = morph.parse(cleaned_word)[0].normal_form
                 if len(normalized_word) > 2 or normalized_word == 'не':
